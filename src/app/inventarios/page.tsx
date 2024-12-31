@@ -1,8 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { FormProvider, useForm } from "react-hook-form";
+import * as yup from "yup";
+import { yupResolver } from "@hookform/resolvers/yup";
 import { toast } from "react-toastify";
-import StockChart from "../../components/StockChart";
+import dynamic from "next/dynamic";
+import ResourceForm from "@/components/ResourceForm";
+import ResourceTable from "@/components/ResourceTable";
+
+const StockChart = dynamic(() => import("../../components/StockChart"), { ssr: false });
 
 interface Inventario {
   id: number;
@@ -10,13 +17,26 @@ interface Inventario {
   stock: number;
 }
 
+const schema = yup.object().shape({
+  recurso: yup.string().required("El nombre del recurso es obligatorio."),
+  stock: yup
+    .number()
+    .typeError("El stock debe ser un número.")
+    .positive("El stock debe ser mayor a 0.")
+    .required("La cantidad de stock es obligatoria."),
+});
+
 export default function Inventarios() {
   const [inventarios, setInventarios] = useState<Inventario[]>([]);
-  const [nuevoRecurso, setNuevoRecurso] = useState({
-    recurso: "",
-    stock: 0,
-  });
   const [isLoading, setIsLoading] = useState(false);
+  const [editingRecurso, setEditingRecurso] = useState<Inventario | null>(null);
+
+  const methods = useForm({
+    resolver: yupResolver(schema),
+    defaultValues: { recurso: "", stock: 0 },
+  });
+
+  const { reset } = methods;
 
   // Fetch inicial
   useEffect(() => {
@@ -38,27 +58,20 @@ export default function Inventarios() {
   }, []);
 
   // Crear nuevo recurso
-  const handleCreate = async () => {
-    if (!nuevoRecurso.recurso || nuevoRecurso.stock <= 0) {
-      toast.error("Por favor, completa todos los campos con valores válidos.", {
-        icon: <span>⚠️</span>,
-      });
-      return;
-    }
-
+  const handleCreate = async (data: { recurso: string; stock: number }) => {
     setIsLoading(true);
     try {
       const res = await fetch("/api/inventarios", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nuevoRecurso),
+        body: JSON.stringify(data),
       });
 
       if (!res.ok) throw new Error("Error al agregar el recurso.");
 
-      const data = await res.json();
-      setInventarios((prev) => [...prev, data]); // Agrega al listado
-      setNuevoRecurso({ recurso: "", stock: 0 }); // Limpia el formulario
+      const newItem = await res.json();
+      setInventarios((prev) => [...prev, newItem]);
+      reset();
       toast.success("Recurso agregado con éxito.", {
         icon: <span>✅</span>,
       });
@@ -84,7 +97,7 @@ export default function Inventarios() {
 
       if (!res.ok) throw new Error("Error al eliminar el recurso.");
 
-      setInventarios((prev) => prev.filter((i) => i.id !== id)); // Elimina del listado
+      setInventarios((prev) => prev.filter((i) => i.id !== id));
       toast.info("Recurso eliminado.", {
         icon: <span>🗑️</span>,
       });
@@ -98,111 +111,77 @@ export default function Inventarios() {
     }
   };
 
+  // Editar recurso
+  const handleEdit = async (id: number, recurso: string, stock: number) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/inventarios", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, recurso, stock }),
+      });
+
+      if (!res.ok) throw new Error("Error al actualizar el recurso.");
+
+      const updatedItem = await res.json();
+
+      setInventarios((prev) =>
+        prev.map((item) => (item.id === id ? updatedItem : item))
+      );
+
+      toast.success("Recurso actualizado con éxito.", {
+        icon: <span>✅</span>,
+      });
+      setEditingRecurso(null);
+    } catch (error) {
+      toast.error("Hubo un error al actualizar el recurso.", {
+        icon: <span>❌</span>,
+      });
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Duplicar recurso
+  const handleDuplicate = async (recurso: Inventario) => {
+    const duplicate = { ...recurso, id: Date.now() }; // Generar un nuevo ID único
+    setInventarios((prev) => [...prev, duplicate]); // Agregar el recurso duplicado a la lista
+    toast.success(`Recurso "${recurso.recurso}" duplicado con éxito.`, {
+      icon: <span>✅</span>,
+    });
+  };
+
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-6">
-        Gestión de Inventarios
-      </h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Lista de recursos */}
-        <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+    <div className="flex flex-col h-full p-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Sección de formulario y tabla */}
+        <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">
             Lista de Recursos
           </h2>
+
           {/* Formulario */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleCreate();
-            }}
-            className="flex flex-col md:flex-row gap-4 mb-6"
-          >
-            <input
-              type="text"
-              placeholder="Ingrese el nombre del recurso"
-              value={nuevoRecurso.recurso}
-              onChange={(e) =>
-                setNuevoRecurso({ ...nuevoRecurso, recurso: e.target.value })
-              }
-              className="flex-1 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
-            />
-            <input
-              type="number"
-              placeholder="Ingrese cantidad de stock"
-              value={nuevoRecurso.stock}
-              onChange={(e) =>
-                setNuevoRecurso({
-                  ...nuevoRecurso,
-                  stock: parseInt(e.target.value),
-                })
-              }
-              className="w-32 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
-            />
-            <button
-              type="submit"
-              className={`btn btn-primary hover:scale-105 transition-transform duration-150 ease-in-out ${
-                isLoading ? "loading" : ""
-              }`}
-              disabled={isLoading}
-            >
-              {isLoading ? "Cargando..." : "Agregar"}
-            </button>
-          </form>
-          {/* Tabla con scroll interno */}
-          <div className="overflow-y-auto max-h-80">
-            <table className="table table-zebra w-full">
-              <thead>
-                <tr className="bg-gray-100 dark:bg-gray-700">
-                  <th className="text-left p-3 text-gray-800 dark:text-gray-200">
-                    Recurso
-                  </th>
-                  <th className="text-left p-3 text-gray-800 dark:text-gray-200">
-                    Stock
-                  </th>
-                  <th className="text-left p-3 text-gray-800 dark:text-gray-200">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {inventarios.map((inv) => (
-                  <tr
-                    key={inv.id}
-                    className={`hover:bg-gray-100 dark:hover:bg-gray-600 ${
-                      inv.stock < 5 ? "bg-red-50 dark:bg-red-800" : ""
-                    }`}
-                  >
-                    <td className="p-3 text-gray-700 dark:text-gray-200">
-                      {inv.recurso}
-                    </td>
-                    <td
-                      className={`p-3 ${
-                        inv.stock < 5
-                          ? "text-red-500 font-bold"
-                          : "text-gray-700 dark:text-gray-200"
-                      }`}
-                    >
-                      {inv.stock}
-                    </td>
-                    <td className="p-3">
-                      <button
-                        onClick={() => handleDelete(inv.id)}
-                        className="btn btn-sm btn-error flex items-center gap-2"
-                        aria-label={`Eliminar recurso ${inv.recurso}`}
-                        disabled={isLoading}
-                      >
-                        Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <FormProvider {...methods}>
+            <ResourceForm onSubmit={(data: { recurso: string; stock: number | null }) => handleCreate({ ...data, stock: data.stock || 0 })} isLoading={isLoading} />
+          </FormProvider>
+
+          {/* Tabla */}
+          <ResourceTable
+            inventarios={inventarios}
+            editingRecurso={editingRecurso}
+            setEditingRecurso={setEditingRecurso}
+            handleEdit={handleEdit}
+            handleDelete={handleDelete}
+            handleDuplicate={handleDuplicate}
+          />
         </div>
-        {/* Columna derecha: Gráfico */}
-        <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <StockChart data={inventarios} />
+
+        {/* Gráfico */}
+        <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 pt-6">
+          <Suspense fallback={<p>Cargando gráfico...</p>}>
+            <StockChart data={inventarios} />
+          </Suspense>
         </div>
       </div>
     </div>

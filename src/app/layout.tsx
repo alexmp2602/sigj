@@ -31,10 +31,12 @@ export default function RootLayout({
       >
         <Header />
         <ToastContainer position="top-right" autoClose={3000} />
-        <main className="py-6 px-4 min-h-screen max-w-6xl mx-auto">{children}</main>
-        <footer className="bg-gray-800 text-gray-400 text-center p-4 mt-6">
-          © {new Date().getFullYear()} LexNova - Todos los derechos reservados
-        </footer>
+        <main
+          id="main-content"
+          className="mt-14 py-6 px-4 mx-auto flex flex-col flex-1 overflow-hidden  scrollbar-custom"
+        >
+          {children}
+        </main>
       </body>
     </html>
   );

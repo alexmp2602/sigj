@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import { useForm, Controller } from "react-hook-form";
+import * as yup from "yup";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { FiEdit, FiTrash2 } from "react-icons/fi"; // Importa iconos
 
 interface Expediente {
   id: number;
@@ -9,12 +14,32 @@ interface Expediente {
   partes: string;
 }
 
+const schema = yup.object().shape({
+  numero: yup.string().required("Número es obligatorio"),
+  estado: yup.string().required("Estado es obligatorio"),
+  partes: yup.string().required("Partes es obligatorio"),
+});
+
 export default function Expedientes() {
   const [expedientes, setExpedientes] = useState<Expediente[]>([]);
-  const [nuevoExpediente, setNuevoExpediente] = useState({
-    numero: "",
-    estado: "",
-    partes: "",
+  const [isLoading, setIsLoading] = useState(false);
+  const [editingExpediente, setEditingExpediente] = useState<Expediente | null>(
+    null
+  );
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const {
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      numero: "",
+      estado: "",
+      partes: "",
+    },
   });
 
   // Fetch inicial
@@ -22,109 +47,209 @@ export default function Expedientes() {
     fetch("/api/expedientes")
       .then((res) => res.json())
       .then((data) => setExpedientes(data))
-      .catch((error) => console.error("Error al cargar expedientes:", error));
+      .catch((error) => {
+        const errorMessage =
+          error instanceof Error ? error.message : "Error desconocido";
+        toast.error("Error al cargar expedientes: " + errorMessage);
+      });
   }, []);
 
-  // Crear nuevo expediente
-  const handleCreate = async () => {
-    const res = await fetch("/api/expedientes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(nuevoExpediente),
-    });
-    const data = await res.json();
-    setExpedientes((prev) => [...prev, data]); // Agrega al listado
-    setNuevoExpediente({ numero: "", estado: "", partes: "" }); // Limpia el formulario
+  const handleSave = async (data: {
+    numero: string;
+    estado: string;
+    partes: string;
+  }) => {
+    setIsLoading(true);
+    try {
+      if (editingExpediente) {
+        const res = await fetch("/api/expedientes", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...editingExpediente, ...data }),
+        });
+
+        if (!res.ok) throw new Error("Error al actualizar el expediente");
+
+        setExpedientes((prev) =>
+          prev.map((e) =>
+            e.id === editingExpediente.id ? { ...e, ...data } : e
+          )
+        );
+        toast.success("Expediente actualizado correctamente");
+      } else {
+        const res = await fetch("/api/expedientes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+
+        if (!res.ok) throw new Error("Error al crear el expediente");
+
+        const newExpediente = await res.json();
+        setExpedientes((prev) => [...prev, newExpediente]);
+        toast.success("Expediente creado correctamente");
+      }
+      reset();
+      setEditingExpediente(null);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Error desconocido";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  // Eliminar expediente
+  const handleDelete = async (id: number) => {
+    try {
+      const res = await fetch("/api/expedientes", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+
+      if (!res.ok) throw new Error("Error al eliminar el expediente");
+
+      setExpedientes((prev) => prev.filter((e) => e.id !== id));
+      toast.success("Expediente eliminado correctamente");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Error desconocido";
+      toast.error("Error al eliminar el expediente: " + errorMessage);
+    }
+  };
+
+  // Filtro de búsqueda
+  const filteredExpedientes = expedientes.filter(
+    (exp) =>
+      exp.numero.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      exp.estado.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      exp.partes.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="p-6 max-w-4xl mx-auto bg-white dark:bg-gray-800 shadow-md rounded-lg">
+    <div className="p-6 max-w-6xl mx-auto bg-white dark:bg-gray-800 shadow-md rounded-lg">
       <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-6">
         Gestión de Expedientes
       </h1>
 
-      {/* Formulario de creación */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">
-          Crear Expediente
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <input
-            type="text"
-            placeholder="Número"
-            value={nuevoExpediente.numero}
-            onChange={(e) =>
-              setNuevoExpediente({ ...nuevoExpediente, numero: e.target.value })
-            }
-            className="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
-          />
-          <input
-            type="text"
-            placeholder="Estado"
-            value={nuevoExpediente.estado}
-            onChange={(e) =>
-              setNuevoExpediente({ ...nuevoExpediente, estado: e.target.value })
-            }
-            className="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
-          />
-          <input
-            type="text"
-            placeholder="Partes"
-            value={nuevoExpediente.partes}
-            onChange={(e) =>
-              setNuevoExpediente({ ...nuevoExpediente, partes: e.target.value })
-            }
-            className="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
-          />
-        </div>
-        <button
-          onClick={handleCreate}
-          className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500"
-        >
-          Crear
-        </button>
-      </div>
+      {/* Barra de búsqueda */}
+      <input
+        type="text"
+        placeholder="Buscar expediente..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="w-full p-3 mb-6 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
+      />
 
-      {/* Tabla de expedientes */}
-      <table className="w-full text-left bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md">
-        <thead className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-          <tr>
-            <th className="p-3">Número</th>
-            <th className="p-3">Estado</th>
-            <th className="p-3">Partes</th>
-            <th className="p-3">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {expedientes.map((exp) => (
-            <tr
-              key={exp.id}
-              className="border-b dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
-            >
-              <td className="p-3">{exp.numero}</td>
-              <td className="p-3">{exp.estado}</td>
-              <td className="p-3">{exp.partes}</td>
-              <td className="p-3">
-                <button
-                  onClick={async () => {
-                    await fetch("/api/expedientes", {
-                      method: "DELETE",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ id: exp.id }),
-                    });
-                    setExpedientes((prev) =>
-                      prev.filter((e) => e.id !== exp.id)
-                    );
-                  }}
-                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:ring-2 focus:ring-red-500"
-                >
-                  Eliminar
-                </button>
-              </td>
+      {/* Formulario */}
+      <form
+        onSubmit={handleSubmit(handleSave)}
+        className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6"
+      >
+        <Controller
+          name="numero"
+          control={control}
+          render={({ field }) => (
+            <input
+              {...field}
+              type="text"
+              placeholder="Número"
+              className={`p-3 border rounded-md focus:outline-none focus:ring-2 ${
+                errors.numero
+                  ? "border-red-500 focus:ring-red-500"
+                  : "focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
+              }`}
+            />
+          )}
+        />
+        <Controller
+          name="estado"
+          control={control}
+          render={({ field }) => (
+            <input
+              {...field}
+              type="text"
+              placeholder="Estado"
+              className={`p-3 border rounded-md focus:outline-none focus:ring-2 ${
+                errors.estado
+                  ? "border-red-500 focus:ring-red-500"
+                  : "focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
+              }`}
+            />
+          )}
+        />
+        <Controller
+          name="partes"
+          control={control}
+          render={({ field }) => (
+            <input
+              {...field}
+              type="text"
+              placeholder="Partes"
+              className={`p-3 border rounded-md focus:outline-none focus:ring-2 ${
+                errors.partes
+                  ? "border-red-500 focus:ring-red-500"
+                  : "focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
+              }`}
+            />
+          )}
+        />
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`bg-blue-600 text-white px-6 py-3 rounded-md ${
+            isLoading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
+          }`}
+        >
+          {isLoading
+            ? "Guardando..."
+            : editingExpediente
+            ? "Actualizar"
+            : "Crear"}
+        </button>
+      </form>
+
+      {/* Tabla */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-left bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md">
+          <thead className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+            <tr>
+              <th className="p-3">Número</th>
+              <th className="p-3">Estado</th>
+              <th className="p-3">Partes</th>
+              <th className="p-3">Acciones</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filteredExpedientes.map((exp) => (
+              <tr
+                key={exp.id}
+                className="border-b dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
+              >
+                <td className="p-3">{exp.numero}</td>
+                <td className="p-3">{exp.estado}</td>
+                <td className="p-3">{exp.partes}</td>
+                <td className="p-3 flex gap-2">
+                  <button
+                    onClick={() => setEditingExpediente(exp)}
+                    className="text-blue-500 hover:text-blue-700 transition flex items-center gap-1"
+                  >
+                    <FiEdit />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(exp.id)}
+                    className="text-red-500 hover:text-red-700 transition flex items-center gap-1"
+                  >
+                    <FiTrash2 />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
