@@ -1,215 +1,246 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
-import { useForm, Controller } from "react-hook-form";
-import * as yup from "yup";
-import { yupResolver } from "@hookform/resolvers/yup";
-import { FiEdit, FiTrash2 } from "react-icons/fi"; // Importa iconos
+import { useState, useMemo } from "react";
+import { FiEdit, FiTrash2, FiFileText, FiDownload } from "react-icons/fi";
+import { useQuery } from "@tanstack/react-query";
+import { exportToExcel, exportToPDF } from "@/utils/exportUtils";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
-interface Expediente {
-  id: number;
-  numero: string;
-  estado: string;
-  partes: string;
-}
+// Fetch Expedientes
+const fetchExpedientes = async () => {
+  const res = await fetch("/api/expedientes");
+  if (!res.ok) throw new Error("Error al obtener expedientes");
 
-const schema = yup.object().shape({
-  numero: yup.string().required("Número es obligatorio"),
-  estado: yup.string().required("Estado es obligatorio"),
-  partes: yup.string().required("Partes es obligatorio"),
-});
+  const json = await res.json();
+  return json.data || [];
+};
 
 export default function Expedientes() {
-  const [expedientes, setExpedientes] = useState<Expediente[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [editingExpediente, setEditingExpediente] = useState<Expediente | null>(
-    null
-  );
   const [searchQuery, setSearchQuery] = useState("");
-
-  const {
-    handleSubmit,
-    control,
-    reset,
-    formState: { errors },
-  } = useForm({
-    resolver: yupResolver(schema),
-    defaultValues: {
-      numero: "",
-      estado: "",
-      partes: "",
-    },
-  });
-
-  // Fetch inicial
-  useEffect(() => {
-    fetch("/api/expedientes")
-      .then((res) => res.json())
-      .then((data) => setExpedientes(data))
-      .catch((error) => {
-        const errorMessage =
-          error instanceof Error ? error.message : "Error desconocido";
-        toast.error("Error al cargar expedientes: " + errorMessage);
-      });
-  }, []);
-
-  const handleSave = async (data: {
+  const [estadoFilter, setEstadoFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expedienteToDelete, setExpedienteToDelete] = useState<{
+    id: string;
     numero: string;
     estado: string;
     partes: string;
-  }) => {
-    setIsLoading(true);
-    try {
-      if (editingExpediente) {
-        const res = await fetch("/api/expedientes", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...editingExpediente, ...data }),
-        });
+  } | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const itemsPerPage = 5;
 
-        if (!res.ok) throw new Error("Error al actualizar el expediente");
+  // React Query para obtener datos
+  const { data: expedientes = [], isLoading } = useQuery({
+    queryKey: ["expedientes"],
+    queryFn: fetchExpedientes,
+  });
 
-        setExpedientes((prev) =>
-          prev.map((e) =>
-            e.id === editingExpediente.id ? { ...e, ...data } : e
-          )
-        );
-        toast.success("Expediente actualizado correctamente");
-      } else {
-        const res = await fetch("/api/expedientes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
+  // Filtrar y Ordenar Expedientes
+  const filteredExpedientes = useMemo(() => {
+    return expedientes.filter(
+      (exp: { numero: string; partes: string; estado: string }) => {
+        const matchesSearch =
+          exp.numero.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          exp.partes.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesEstado =
+          estadoFilter === "" || exp.estado.toLowerCase() === estadoFilter;
 
-        if (!res.ok) throw new Error("Error al crear el expediente");
-
-        const newExpediente = await res.json();
-        setExpedientes((prev) => [...prev, newExpediente]);
-        toast.success("Expediente creado correctamente");
+        return matchesSearch && matchesEstado;
       }
-      reset();
-      setEditingExpediente(null);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Error desconocido";
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
+    );
+  }, [expedientes, searchQuery, estadoFilter]);
+
+  // Paginación
+  const paginatedExpedientes = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredExpedientes.slice(start, end);
+  }, [filteredExpedientes, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredExpedientes.length / itemsPerPage);
+
+  const handleDelete = () => {
+    if (expedienteToDelete) {
+      console.log("Eliminar expediente:", expedienteToDelete);
+      setExpedienteToDelete(null);
     }
   };
 
-  // Eliminar expediente
-  const handleDelete = async (id: number) => {
+  const handleExport = async (type: "pdf" | "excel") => {
+    setIsExporting(true);
     try {
-      const res = await fetch("/api/expedientes", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-
-      if (!res.ok) throw new Error("Error al eliminar el expediente");
-
-      setExpedientes((prev) => prev.filter((e) => e.id !== id));
-      toast.success("Expediente eliminado correctamente");
+      if (type === "pdf") await exportToPDF(filteredExpedientes);
+      if (type === "excel") await exportToExcel(filteredExpedientes);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Error desconocido";
-      toast.error("Error al eliminar el expediente: " + errorMessage);
+      console.error("Error al exportar:", error);
+    } finally {
+      setIsExporting(false);
     }
   };
 
-  // Filtro de búsqueda
-  const filteredExpedientes = expedientes.filter(
-    (exp) =>
-      exp.numero.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      exp.estado.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      exp.partes.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[200px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto bg-white dark:bg-gray-800 shadow-md rounded-lg">
-      <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-6">
-        Gestión de Expedientes
+    <div className="p-6 max-w-6xl mx-auto bg-transparent shadow-md rounded-lg">
+      <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+        Gestión de Expedientes {estadoFilter && `(${estadoFilter})`}
       </h1>
+      <p className="text-gray-600 dark:text-gray-400 mb-6">
+        Administra, filtra y exporta expedientes con facilidad.
+      </p>
 
-      {/* Barra de búsqueda */}
-      <input
-        type="text"
-        placeholder="Buscar expediente..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full p-3 mb-6 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
-      />
+      {/* Filtros Activos */}
+      <div className="flex gap-2 flex-wrap mb-4">
+        {searchQuery && (
+          <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
+            Búsqueda: {searchQuery}{" "}
+            <button
+              onClick={() => setSearchQuery("")}
+              className="ml-2 text-blue-500"
+            >
+              ×
+            </button>
+          </span>
+        )}
+        {estadoFilter && (
+          <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
+            Estado: {estadoFilter}{" "}
+            <button
+              onClick={() => setEstadoFilter("")}
+              className="ml-2 text-green-500"
+            >
+              ×
+            </button>
+          </span>
+        )}
+      </div>
 
-      {/* Formulario */}
-      <form
-        onSubmit={handleSubmit(handleSave)}
-        className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6"
-      >
-        <Controller
-          name="numero"
-          control={control}
-          render={({ field }) => (
-            <input
-              {...field}
-              type="text"
-              placeholder="Número"
-              className={`p-3 border rounded-md focus:outline-none focus:ring-2 ${
-                errors.numero
-                  ? "border-red-500 focus:ring-red-500"
-                  : "focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
-              }`}
-            />
-          )}
+      {/* Barra de Filtros */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <input
+          type="text"
+          placeholder="Buscar por número o partes..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm min-w-[200px]"
         />
-        <Controller
-          name="estado"
-          control={control}
-          render={({ field }) => (
-            <input
-              {...field}
-              type="text"
-              placeholder="Estado"
-              className={`p-3 border rounded-md focus:outline-none focus:ring-2 ${
-                errors.estado
-                  ? "border-red-500 focus:ring-red-500"
-                  : "focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
-              }`}
-            />
-          )}
-        />
-        <Controller
-          name="partes"
-          control={control}
-          render={({ field }) => (
-            <input
-              {...field}
-              type="text"
-              placeholder="Partes"
-              className={`p-3 border rounded-md focus:outline-none focus:ring-2 ${
-                errors.partes
-                  ? "border-red-500 focus:ring-red-500"
-                  : "focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
-              }`}
-            />
-          )}
-        />
-        <button
-          type="submit"
-          disabled={isLoading}
-          className={`bg-blue-600 text-white px-6 py-3 rounded-md ${
-            isLoading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
-          }`}
+        <select
+          value={estadoFilter}
+          onChange={(e) => setEstadoFilter(e.target.value)}
+          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm min-w-[150px] appearance-none bg-right bg-no-repeat"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+            backgroundSize: "1rem",
+            backgroundPosition: "calc(100% - 0.75rem) center", // Ajusta la posición de la flecha
+          }}
         >
-          {isLoading
-            ? "Guardando..."
-            : editingExpediente
-            ? "Actualizar"
-            : "Crear"}
+          <option value="">Estado</option>
+          <option value="abierto">Abierto</option>
+          <option value="cerrado">Cerrado</option>
+        </select>
+      </div>
+
+      {/* Controles de Paginación */}
+      <div className="flex justify-between items-center mb-4">
+        <button
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded disabled:opacity-50"
+        >
+          Anterior
         </button>
-      </form>
+        <span className="text-blue-600 dark:text-blue-400 font-semibold">
+          Página {currentPage} de {totalPages}
+        </span>
+        <button
+          onClick={() =>
+            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+          }
+          disabled={currentPage === totalPages}
+          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded disabled:opacity-50"
+        >
+          Siguiente
+        </button>
+      </div>
+
+      {/* Botones de Exportación */}
+      <div className="flex gap-4 mb-6">
+        <button
+          onClick={() => handleExport("pdf")}
+          className={`bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition flex items-center gap-2 ${
+            isExporting ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          disabled={isExporting}
+        >
+          {isExporting ? (
+            <svg
+              className="animate-spin h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4l3-3-3-3V4a10 10 0 100 20v-4l-3 3 3 3v-4a8 8 0 01-8-8z"
+              ></path>
+            </svg>
+          ) : (
+            <>
+              <FiFileText />
+              Exportar a PDF
+            </>
+          )}
+        </button>
+        <button
+          onClick={() => handleExport("excel")}
+          className={`bg-yellow-600 text-white px-6 py-3 rounded-md hover:bg-yellow-700 transition flex items-center gap-2 ${
+            isExporting ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          disabled={isExporting}
+        >
+          {isExporting ? (
+            <svg
+              className="animate-spin h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4l3-3-3-3V4a10 10 0 100 20v-4l-3 3 3 3v-4a8 8 0 01-8-8z"
+              ></path>
+            </svg>
+          ) : (
+            <>
+              <FiDownload />
+              Exportar a Excel
+            </>
+          )}
+        </button>
+      </div>
 
       {/* Tabla */}
       <div className="overflow-x-auto">
@@ -223,33 +254,64 @@ export default function Expedientes() {
             </tr>
           </thead>
           <tbody>
-            {filteredExpedientes.map((exp) => (
-              <tr
-                key={exp.id}
-                className="border-b dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
-              >
-                <td className="p-3">{exp.numero}</td>
-                <td className="p-3">{exp.estado}</td>
-                <td className="p-3">{exp.partes}</td>
-                <td className="p-3 flex gap-2">
-                  <button
-                    onClick={() => setEditingExpediente(exp)}
-                    className="text-blue-500 hover:text-blue-700 transition flex items-center gap-1"
+            {paginatedExpedientes.length > 0 ? (
+              paginatedExpedientes.map(
+                (exp: {
+                  id: string;
+                  numero: string;
+                  estado: string;
+                  partes: string;
+                }) => (
+                  <tr
+                    key={exp.id}
+                    className="border-b dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-transform duration-200 ease-in-out"
                   >
-                    <FiEdit />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(exp.id)}
-                    className="text-red-500 hover:text-red-700 transition flex items-center gap-1"
-                  >
-                    <FiTrash2 />
-                  </button>
+                    <td className="p-3">{exp.numero}</td>
+                    <td className="p-3">
+                      <span
+                        className={`px-2 py-1 rounded-md text-sm ${
+                          exp.estado === "Abierto"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {exp.estado}
+                      </span>
+                    </td>
+                    <td className="p-3">{exp.partes}</td>
+                    <td className="p-3 flex gap-2">
+                      <button className="text-blue-500 hover:text-blue-700 transition transform hover:scale-105">
+                        <FiEdit />
+                      </button>
+                      <button
+                        onClick={() => setExpedienteToDelete(exp)}
+                        className="text-red-500 hover:text-red-700 transition transform hover:scale-105"
+                      >
+                        <FiTrash2 />
+                      </button>
+                    </td>
+                  </tr>
+                )
+              )
+            ) : (
+              <tr>
+                <td colSpan={4} className="text-center p-4 text-gray-500">
+                  No se encontraron expedientes para los filtros aplicados.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
+
+      {/* Modal de Confirmación */}
+      <ConfirmationModal
+        title="Confirmar eliminación"
+        message={`¿Estás seguro de que deseas eliminar el expediente ${expedienteToDelete?.numero}?`}
+        isOpen={!!expedienteToDelete}
+        onCancel={() => setExpedienteToDelete(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }
