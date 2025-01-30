@@ -2,9 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { FiEdit, FiTrash2, FiFileText, FiDownload } from "react-icons/fi";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-toastify";
 import { exportToExcel, exportToPDF } from "@/utils/exportUtils";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import EditModal from "@/components/EditModal";
 
 // Fetch Expedientes
 const fetchExpedientes = async () => {
@@ -16,6 +18,7 @@ const fetchExpedientes = async () => {
 };
 
 export default function Expedientes() {
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -26,6 +29,12 @@ export default function Expedientes() {
     partes: string;
   } | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [expedienteToEdit, setExpedienteToEdit] = useState<{
+    id: string;
+    numero: string;
+    estado: string;
+    partes: string;
+  } | null>(null);
   const itemsPerPage = 5;
 
   // React Query para obtener datos
@@ -58,10 +67,60 @@ export default function Expedientes() {
 
   const totalPages = Math.ceil(filteredExpedientes.length / itemsPerPage);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (expedienteToDelete) {
-      console.log("Eliminar expediente:", expedienteToDelete);
-      setExpedienteToDelete(null);
+      try {
+        console.log("Eliminar expediente:", expedienteToDelete);
+
+        queryClient.setQueryData(["expedientes"], (oldData: { id: string }[]) =>
+          oldData.filter((exp) => exp.id !== expedienteToDelete.id)
+        );
+
+        toast.success("Expediente eliminado con éxito.");
+      } catch (error) {
+        toast.error(`Error: ${(error as Error).message}`);
+        console.error("Error al eliminar:", error);
+      } finally {
+        setExpedienteToDelete(null);
+      }
+    }
+  };
+
+  const handleEdit = (expediente: {
+    id: string;
+    numero: string;
+    estado: string;
+    partes: string;
+  }) => {
+    console.log("Editar expediente:", expediente);
+    setExpedienteToEdit(expediente);
+  };
+
+  const handleSaveEdit = async (expediente: {
+    id: string;
+    numero: string;
+    estado: string;
+    partes: string;
+  }) => {
+    try {
+      console.log("Guardar cambios del expediente:", expediente);
+      
+
+      // Actualizar el estado local después de guardar
+      queryClient.setQueryData(
+        ["expedientes"],
+        (oldData: { id: string; numero: string; estado: string; partes: string }[]) =>
+          oldData.map((exp) =>
+            exp.id === expediente.id ? expediente : exp
+          )
+      );
+
+      toast.success("Expediente actualizado con éxito.");
+    } catch (error) {
+      toast.error(`Error: ${(error as Error).message}`);
+      console.error("Error al actualizar:", error);
+    } finally {
+      setExpedienteToEdit(null);
     }
   };
 
@@ -70,7 +129,11 @@ export default function Expedientes() {
     try {
       if (type === "pdf") await exportToPDF(filteredExpedientes);
       if (type === "excel") await exportToExcel(filteredExpedientes);
+      toast.success(
+        `Exportación a ${type.toUpperCase()} completada con éxito.`
+      );
     } catch (error) {
+      toast.error(`Error al exportar: ${(error as Error).message}`);
       console.error("Error al exportar:", error);
     } finally {
       setIsExporting(false);
@@ -280,7 +343,10 @@ export default function Expedientes() {
                     </td>
                     <td className="p-3">{exp.partes}</td>
                     <td className="p-3 flex gap-2">
-                      <button className="text-blue-500 hover:text-blue-700 transition transform hover:scale-105">
+                      <button
+                        onClick={() => handleEdit(exp)}
+                        className="text-blue-500 hover:text-blue-700 transition transform hover:scale-105"
+                      >
                         <FiEdit />
                       </button>
                       <button
@@ -311,6 +377,14 @@ export default function Expedientes() {
         isOpen={!!expedienteToDelete}
         onCancel={() => setExpedienteToDelete(null)}
         onConfirm={handleDelete}
+      />
+
+      {/* Modal de Edición */}
+      <EditModal
+        isOpen={!!expedienteToEdit}
+        expediente={expedienteToEdit}
+        onCancel={() => setExpedienteToEdit(null)}
+        onSave={handleSaveEdit}
       />
     </div>
   );

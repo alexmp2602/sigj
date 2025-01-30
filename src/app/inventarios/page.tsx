@@ -9,12 +9,15 @@ import dynamic from "next/dynamic";
 import ResourceForm from "@/components/ResourceForm";
 import ResourceTable from "@/components/ResourceTable";
 
-const StockChart = dynamic(() => import("../../components/StockChart"), { ssr: false });
+const StockChart = dynamic(() => import("../../components/StockChart"), {
+  ssr: false,
+});
 
 interface Inventario {
   id: number;
   recurso: string;
   stock: number;
+  duplicado?: boolean;
 }
 
 const schema = yup.object().shape({
@@ -51,7 +54,9 @@ export default function Inventarios() {
         const data = await res.json();
         setInventarios(data);
       } catch (error) {
-        toast.error((error as Error).message || "Error al cargar los inventarios.");
+        toast.error(
+          (error as Error).message || "Error al cargar los inventarios."
+        );
         console.error(error);
       }
     };
@@ -77,7 +82,9 @@ export default function Inventarios() {
         reset();
         toast.success("Recurso agregado con éxito.");
       } catch (error) {
-        toast.error((error as Error).message || "Hubo un error al agregar el recurso.");
+        toast.error(
+          (error as Error).message || "Hubo un error al agregar el recurso."
+        );
         console.error(error);
       } finally {
         setIsLoading(false);
@@ -87,57 +94,74 @@ export default function Inventarios() {
   );
 
   // Eliminar recurso
-  const handleDelete = useCallback(async (id: number) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/inventarios", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
+  const handleDelete = useCallback(
+    async (id: number) => {
+      const recurso = inventarios.find((item) => item.id === id);
 
-      if (!res.ok) throw new Error("Error al eliminar el recurso.");
+      if (recurso?.duplicado) {
+        setInventarios((prev) => prev.filter((i) => i.id !== id));
+        toast.info("Recurso duplicado eliminado.");
+        return;
+      }
 
-      setInventarios((prev) => prev.filter((i) => i.id !== id));
-      toast.info("Recurso eliminado.");
-    } catch (error) {
-      toast.error((error as Error).message || "Hubo un error al eliminar el recurso.");
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/inventarios", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        });
+
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || "Error desconocido.");
+
+        setInventarios((prev) => prev.filter((i) => i.id !== id));
+        toast.success("Recurso eliminado con éxito.");
+      } catch (error) {
+        toast.error(`Error: ${(error as Error).message}`);
+        console.error("Error al eliminar:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [inventarios]
+  );
 
   // Editar recurso
-  const handleEdit = useCallback(async (id: number, recurso: string, stock: number) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/inventarios", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, recurso, stock }),
-      });
+  const handleEdit = useCallback(
+    async (id: number, recurso: string, stock: number) => {
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/inventarios", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, recurso, stock }),
+        });
 
-      if (!res.ok) throw new Error("Error al actualizar el recurso.");
+        if (!res.ok) throw new Error("Error al actualizar el recurso.");
 
-      const updatedItem = await res.json();
-      setInventarios((prev) =>
-        prev.map((item) => (item.id === id ? updatedItem : item))
-      );
+        const updatedItem = await res.json();
+        setInventarios((prev) =>
+          prev.map((item) => (item.id === id ? updatedItem : item))
+        );
 
-      toast.success("Recurso actualizado con éxito.");
-      setEditingRecurso(null);
-    } catch (error) {
-      toast.error((error as Error).message || "Hubo un error al actualizar el recurso.");
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+        toast.success("Recurso actualizado con éxito.");
+        setEditingRecurso(null);
+      } catch (error) {
+        toast.error(
+          (error as Error).message || "Hubo un error al actualizar el recurso."
+        );
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
 
   // Duplicar recurso
   const handleDuplicate = useCallback((recurso: Inventario) => {
-    const duplicate = { ...recurso, id: Date.now() };
+    const duplicate = { ...recurso, id: Date.now(), duplicado: true };
     setInventarios((prev) => [...prev, duplicate]);
     toast.success(`Recurso "${recurso.recurso}" duplicado con éxito.`);
   }, []);

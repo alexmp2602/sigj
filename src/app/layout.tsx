@@ -44,8 +44,8 @@ export default function RootLayout({
                 los derechos reservados.
               </p>
               <p>
-                Diseñado y desarrollado con{" "}
-                <span className="text-red-500">❤</span> por{" "}
+                Diseñado y desarrollado por{" "}
+                
                 <a
                   href="https://alexpereyra.dev"
                   target="_blank"
