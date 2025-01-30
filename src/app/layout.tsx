@@ -33,7 +33,7 @@ export default function RootLayout({
             <Header />
 
             {/* Contenido principal */}
-            <main className="mt-14 py-8 px-6 mx-auto flex flex-col flex-1 w-full max-w-7xl bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden custom-scrollbar">
+            <main className="mt-14  mx-auto flex flex-col flex-1 w-full max-w-7xl bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden custom-scrollbar">
               {children}
             </main>
 

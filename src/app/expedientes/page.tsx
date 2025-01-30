@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { FiEdit, FiTrash2, FiFileText, FiDownload } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiFileText } from "react-icons/fi";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
-import { exportToExcel, exportToPDF } from "@/utils/exportUtils";
+import { exportToPDF } from "@/utils/exportUtils";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import EditModal from "@/components/EditModal";
 
@@ -22,19 +22,25 @@ export default function Expedientes() {
   const [searchQuery, setSearchQuery] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [expedienteToDelete, setExpedienteToDelete] = useState<{
-    id: string;
-    numero: string;
-    estado: string;
-    partes: string;
-  } | null>(null);
+  const [expedienteToDelete, setExpedienteToDelete] = useState<
+    | {
+        id: string;
+        numero: string;
+        estado: string;
+        partes: string;
+        ultimaModificacion: string;
+      }
+    | undefined
+  >(undefined);
   const [isExporting, setIsExporting] = useState(false);
   const [expedienteToEdit, setExpedienteToEdit] = useState<{
     id: string;
     numero: string;
     estado: string;
     partes: string;
+    ultimaModificacion: string;
   } | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const itemsPerPage = 5;
 
   // React Query para obtener datos
@@ -81,7 +87,7 @@ export default function Expedientes() {
         toast.error(`Error: ${(error as Error).message}`);
         console.error("Error al eliminar:", error);
       } finally {
-        setExpedienteToDelete(null);
+        setExpedienteToDelete(undefined);
       }
     }
   };
@@ -91,6 +97,7 @@ export default function Expedientes() {
     numero: string;
     estado: string;
     partes: string;
+    ultimaModificacion: string;
   }) => {
     console.log("Editar expediente:", expediente);
     setExpedienteToEdit(expediente);
@@ -101,18 +108,23 @@ export default function Expedientes() {
     numero: string;
     estado: string;
     partes: string;
+    ultimaModificacion?: string;
   }) => {
     try {
       console.log("Guardar cambios del expediente:", expediente);
-      
 
       // Actualizar el estado local después de guardar
       queryClient.setQueryData(
         ["expedientes"],
-        (oldData: { id: string; numero: string; estado: string; partes: string }[]) =>
-          oldData.map((exp) =>
-            exp.id === expediente.id ? expediente : exp
-          )
+        (
+          oldData: {
+            id: string;
+            numero: string;
+            estado: string;
+            partes: string;
+            ultimaModificacion: string;
+          }[]
+        ) => oldData.map((exp) => (exp.id === expediente.id ? expediente : exp))
       );
 
       toast.success("Expediente actualizado con éxito.");
@@ -124,11 +136,10 @@ export default function Expedientes() {
     }
   };
 
-  const handleExport = async (type: "pdf" | "excel") => {
+  const handleExport = async (type: "pdf") => {
     setIsExporting(true);
     try {
       if (type === "pdf") await exportToPDF(filteredExpedientes);
-      if (type === "excel") await exportToExcel(filteredExpedientes);
       toast.success(
         `Exportación a ${type.toUpperCase()} completada con éxito.`
       );
@@ -137,6 +148,44 @@ export default function Expedientes() {
       console.error("Error al exportar:", error);
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleGenerateDocument = async (expediente: { id: string; numero: string; estado: string; partes: string; ultimaModificacion: string }) => {
+    if (isDownloading) {
+      toast.info("Ya hay una descarga en proceso. Espera un momento...");
+      return;
+    }
+
+    setIsDownloading(true);
+
+    try {
+      const res = await fetch("/api/expedientes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...expediente, generateDocument: true }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Error desconocido en el servidor.");
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `documento_${expediente.numero}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      toast.success("Documento generado con éxito.");
+    } catch (error) {
+      toast.error(`Error: ${(error as Error).message}`);
+      console.error("Error al generar el documento:", error);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -268,41 +317,6 @@ export default function Expedientes() {
             </>
           )}
         </button>
-        <button
-          onClick={() => handleExport("excel")}
-          className={`bg-yellow-600 text-white px-6 py-3 rounded-md hover:bg-yellow-700 transition flex items-center gap-2 ${
-            isExporting ? "opacity-50 cursor-not-allowed" : ""
-          }`}
-          disabled={isExporting}
-        >
-          {isExporting ? (
-            <svg
-              className="animate-spin h-5 w-5 text-white"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v4l3-3-3-3V4a10 10 0 100 20v-4l-3 3 3 3v-4a8 8 0 01-8-8z"
-              ></path>
-            </svg>
-          ) : (
-            <>
-              <FiDownload />
-              Exportar a Excel
-            </>
-          )}
-        </button>
       </div>
 
       {/* Tabla */}
@@ -313,6 +327,7 @@ export default function Expedientes() {
               <th className="p-3">Número</th>
               <th className="p-3">Estado</th>
               <th className="p-3">Partes</th>
+              <th className="p-3">Última Modificación</th>
               <th className="p-3">Acciones</th>
             </tr>
           </thead>
@@ -324,6 +339,7 @@ export default function Expedientes() {
                   numero: string;
                   estado: string;
                   partes: string;
+                  ultimaModificacion: string;
                 }) => (
                   <tr
                     key={exp.id}
@@ -342,6 +358,7 @@ export default function Expedientes() {
                       </span>
                     </td>
                     <td className="p-3">{exp.partes}</td>
+                    <td className="p-3">{exp.ultimaModificacion}</td>
                     <td className="p-3 flex gap-2">
                       <button
                         onClick={() => handleEdit(exp)}
@@ -355,13 +372,20 @@ export default function Expedientes() {
                       >
                         <FiTrash2 />
                       </button>
+                      <button
+                        onClick={() => handleGenerateDocument(exp)}
+                        className="text-green-500 hover:text-green-700 transition transform hover:scale-105"
+                        disabled={isDownloading}
+                      >
+                        <FiFileText />
+                      </button>
                     </td>
                   </tr>
                 )
               )
             ) : (
               <tr>
-                <td colSpan={4} className="text-center p-4 text-gray-500">
+                <td colSpan={5} className="text-center p-4 text-gray-500">
                   No se encontraron expedientes para los filtros aplicados.
                 </td>
               </tr>
@@ -375,7 +399,7 @@ export default function Expedientes() {
         title="Confirmar eliminación"
         message={`¿Estás seguro de que deseas eliminar el expediente ${expedienteToDelete?.numero}?`}
         isOpen={!!expedienteToDelete}
-        onCancel={() => setExpedienteToDelete(null)}
+        onCancel={() => setExpedienteToDelete(undefined)}
         onConfirm={handleDelete}
       />
 
