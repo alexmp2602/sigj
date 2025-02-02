@@ -280,16 +280,16 @@ export default function Expedientes() {
         </select>
       </div>
 
-      {/* Controles de Paginación */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-4">
+      {/* Controles de paginación */}
+      <div className="flex justify-between items-center mb-6">
         <button
           onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
           disabled={currentPage === 1}
-          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded disabled:opacity-50 w-full md:w-auto mb-2 md:mb-0"
+          className="px-3 py-2 bg-gray-200 text-gray-700 rounded disabled:opacity-50"
         >
           Anterior
         </button>
-        <span className="text-blue-600 dark:text-blue-400 font-semibold text-center w-full md:w-auto">
+        <span className="text-blue-600 font-semibold">
           Página {currentPage} de {totalPages}
         </span>
         <button
@@ -297,7 +297,7 @@ export default function Expedientes() {
             setCurrentPage((prev) => Math.min(prev + 1, totalPages))
           }
           disabled={currentPage === totalPages}
-          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded disabled:opacity-50 w-full md:w-auto"
+          className="px-3 py-2 bg-gray-200 text-gray-700 rounded disabled:opacity-50"
         >
           Siguiente
         </button>
@@ -432,7 +432,7 @@ export default function Expedientes() {
               }) => (
                 <div
                   key={exp.id}
-                  className="bg-gray-50 dark:bg-gray-700 rounded-lg shadow p-4"
+                  className="bg-gray-50 dark:bg-gray-700 rounded-lg shadow p-4 transition hover:shadow-lg"
                 >
                   <div className="mb-2">
                     <span className="font-semibold text-gray-700 dark:text-gray-300">
@@ -474,25 +474,28 @@ export default function Expedientes() {
                       {exp.ultimaModificacion}
                     </span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex justify-around">
                     <button
                       onClick={() => handleEdit(exp)}
-                      className="text-blue-500 hover:text-blue-700 transition transform hover:scale-105"
+                      className="flex flex-col items-center p-3 rounded-full text-blue-500 hover:text-blue-700 transition transform hover:scale-105"
                     >
-                      <FiEdit />
+                      <FiEdit className="text-xl" />
+                      <span className="mt-1 text-xs">Editar</span>
                     </button>
                     <button
                       onClick={() => setExpedienteToDelete(exp)}
-                      className="text-red-500 hover:text-red-700 transition transform hover:scale-105"
+                      className="flex flex-col items-center p-3 rounded-full text-red-500 hover:text-red-700 transition transform hover:scale-105"
                     >
-                      <FiTrash2 />
+                      <FiTrash2 className="text-xl" />
+                      <span className="mt-1 text-xs">Eliminar</span>
                     </button>
                     <button
                       onClick={() => handleGenerateDocument(exp)}
-                      className="text-green-500 hover:text-green-700 transition transform hover:scale-105"
+                      className="flex flex-col items-center p-3 rounded-full text-green-500 hover:text-green-700 transition transform hover:scale-105"
                       disabled={isDownloading}
                     >
-                      <FiFileText />
+                      <FiFileText className="text-xl" />
+                      <span className="mt-1 text-xs">Doc.</span>
                     </button>
                   </div>
                 </div>

@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 import ResourceForm from "@/components/ResourceForm";
 import ResourceTable from "@/components/ResourceTable";
 import { AnimatedHeader } from "@/components/AnimatedHeader";
+import { FiEdit, FiTrash2, FiCopy } from "react-icons/fi";
 
 const StockChart = dynamic(() => import("../../components/StockChart"), {
   ssr: false,
@@ -189,14 +190,74 @@ export default function Inventarios() {
           <FormProvider {...methods}>
             <ResourceForm onSubmit={handleCreate} isLoading={isLoading} />
           </FormProvider>
-          <ResourceTable
-            inventarios={inventarios}
-            editingRecurso={editingRecurso}
-            setEditingRecurso={setEditingRecurso}
-            handleEdit={handleEdit}
-            handleDelete={handleDelete}
-            handleDuplicate={handleDuplicate}
-          />
+          {/* Vista de escritorio */}
+          <div className="hidden lg:block">
+            <ResourceTable
+              inventarios={inventarios}
+              editingRecurso={editingRecurso}
+              setEditingRecurso={setEditingRecurso}
+              handleEdit={handleEdit}
+              handleDelete={handleDelete}
+              handleDuplicate={handleDuplicate}
+            />
+          </div>
+          {/* Vista en móvil */}
+          <div className="block lg:hidden space-y-4">
+            {inventarios.length > 0 ? (
+              inventarios.map((item: Inventario) => (
+                <div
+                  key={item.id}
+                  className="bg-gray-50 dark:bg-gray-700 rounded-lg shadow p-4 transition hover:shadow-lg"
+                >
+                  <div className="mb-2">
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">
+                      Recurso:
+                    </span>
+                    <span className="ml-2 text-gray-900 dark:text-gray-100">
+                      {item.recurso}
+                    </span>
+                  </div>
+                  <div className="mb-2">
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">
+                      Stock:
+                    </span>
+                    <span className="ml-2 text-gray-900 dark:text-gray-100">
+                      {item.stock}
+                    </span>
+                  </div>
+                  <div className="flex justify-around">
+                    <button
+                      onClick={() =>
+                        handleEdit(item.id, item.recurso, item.stock)
+                      }
+                      className="flex flex-col items-center p-3 rounded-full text-blue-500 hover:text-blue-700 transition transform hover:scale-105"
+                    >
+                      <FiEdit className="text-xl" />
+                      <span className="mt-1 text-xs">Editar</span>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      className="flex flex-col items-center p-3 rounded-full text-red-500 hover:text-red-700 transition transform hover:scale-105"
+                    >
+                      <FiTrash2 className="text-xl" />
+                      <span className="mt-1 text-xs">Eliminar</span>
+                    </button>
+                    <button
+                      onClick={() => handleDuplicate(item)}
+                      className="flex flex-col items-center p-3 rounded-full text-green-500 hover:text-green-700 transition transform hover:scale-105"
+                    >
+                      <FiCopy className="text-xl" />
+                      <span className="mt-1 text-xs">Duplicar</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center p-4 text-gray-500">
+                No se encontraron recursos.
+              </div>
+            )}
+          </div>
         </div>
         {/* Gráfico de stock */}
         <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 p-6">

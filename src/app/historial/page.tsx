@@ -188,12 +188,12 @@ export default function HistorialAcciones() {
           placeholder="Buscar acción..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm"
+          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm w-full"
         />
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm appearance-none bg-right bg-no-repeat"
+          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm w-full appearance-none bg-right bg-no-repeat"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
             backgroundSize: "1rem",
@@ -211,14 +211,14 @@ export default function HistorialAcciones() {
           type="date"
           value={filterDate}
           onChange={(e) => setFilterDate(e.target.value)}
-          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm"
+          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm w-full"
         />
         <input
           type="text"
           placeholder="Filtrar por usuario..."
           value={filterUser}
           onChange={(e) => setFilterUser(e.target.value)}
-          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm"
+          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm w-full"
         />
       </div>
 
@@ -285,9 +285,7 @@ export default function HistorialAcciones() {
           Página {currentPage} de {totalPages}
         </span>
         <button
-          onClick={() =>
-            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-          }
+          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
           disabled={currentPage === totalPages}
           className="px-3 py-2 bg-gray-200 text-gray-700 rounded disabled:opacity-50"
         >
@@ -297,11 +295,7 @@ export default function HistorialAcciones() {
 
       {/* Indicador de carga */}
       {isPending && (
-        <div
-          className="flex justify-center items-center mb-6"
-          role="status"
-          aria-live="polite"
-        >
+        <div className="flex justify-center items-center mb-6" role="status" aria-live="polite">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
           <span className="sr-only">Cargando...</span>
         </div>
@@ -322,10 +316,7 @@ export default function HistorialAcciones() {
           <tbody>
             {paginatedHistory.length > 0 ? (
               paginatedHistory.map((entry, index) => (
-                <tr
-                  key={index}
-                  className="border-b dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-transform duration-200 ease-in-out"
-                >
+                <tr key={index} className="border-b dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-transform duration-200 ease-in-out">
                   <td className="p-3">{entry.user}</td>
                   <td className="p-3">{entry.type}</td>
                   <td className="p-3">{entry.date}</td>
@@ -347,41 +338,22 @@ export default function HistorialAcciones() {
       <div className="block md:hidden space-y-4">
         {paginatedHistory.length > 0 ? (
           paginatedHistory.map((entry, index) => (
-            <div
-              key={index}
-              className="bg-gray-50 dark:bg-gray-700 rounded-lg shadow p-4"
-            >
+            <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg shadow p-4">
               <div className="mb-2">
-                <span className="font-semibold text-gray-700 dark:text-gray-300">
-                  Usuario:
-                </span>
-                <span className="ml-2 text-gray-900 dark:text-gray-100">
-                  {entry.user}
-                </span>
+                <span className="font-semibold text-gray-700 dark:text-gray-300">Usuario:</span>
+                <span className="ml-2 text-gray-900 dark:text-gray-100">{entry.user}</span>
               </div>
               <div className="mb-2">
-                <span className="font-semibold text-gray-700 dark:text-gray-300">
-                  Tipo:
-                </span>
-                <span className="ml-2 text-gray-900 dark:text-gray-100">
-                  {entry.type}
-                </span>
+                <span className="font-semibold text-gray-700 dark:text-gray-300">Tipo:</span>
+                <span className="ml-2 text-gray-900 dark:text-gray-100">{entry.type}</span>
               </div>
               <div className="mb-2">
-                <span className="font-semibold text-gray-700 dark:text-gray-300">
-                  Fecha:
-                </span>
-                <span className="ml-2 text-gray-900 dark:text-gray-100">
-                  {entry.date}
-                </span>
+                <span className="font-semibold text-gray-700 dark:text-gray-300">Fecha:</span>
+                <span className="ml-2 text-gray-900 dark:text-gray-100">{entry.date}</span>
               </div>
               <div className="mb-2">
-                <span className="font-semibold text-gray-700 dark:text-gray-300">
-                  Acción:
-                </span>
-                <span className="ml-2 text-gray-900 dark:text-gray-100">
-                  {entry.action}
-                </span>
+                <span className="font-semibold text-gray-700 dark:text-gray-300">Acción:</span>
+                <span className="ml-2 text-gray-900 dark:text-gray-100">{entry.action}</span>
               </div>
             </div>
           ))
