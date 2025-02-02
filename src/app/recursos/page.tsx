@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 import dynamic from "next/dynamic";
 import ResourceForm from "@/components/ResourceForm";
 import ResourceTable from "@/components/ResourceTable";
+import { AnimatedHeader } from "@/components/AnimatedHeader";
 
 const StockChart = dynamic(() => import("../../components/StockChart"), {
   ssr: false,
@@ -170,10 +171,21 @@ export default function Inventarios() {
     <div className="flex flex-col p-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Formulario y tabla */}
-        <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-          <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">
+        <div className="p-6">
+          {/* Encabezado con animación */}
+          <AnimatedHeader
+            className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2"
+            variant="h1"
+          >
             Gestión de Recursos y Documentos
-          </h2>
+          </AnimatedHeader>
+          <AnimatedHeader
+            className="text-gray-600 dark:text-gray-400 mb-6"
+            variant="p"
+          >
+            Agrega, edita y elimina recursos y documentos.
+          </AnimatedHeader>
+
           <FormProvider {...methods}>
             <ResourceForm onSubmit={handleCreate} isLoading={isLoading} />
           </FormProvider>

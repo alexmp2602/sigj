@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
-import { motion } from "framer-motion";
-import { FiCalendar, FiArrowUp, FiArrowDown } from "react-icons/fi";
+import { AnimatedHeader } from "@/components/AnimatedHeader";
+import { FiArrowUp, FiArrowDown } from "react-icons/fi";
 
 export default function CalendarioJudicial() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -105,25 +105,18 @@ export default function CalendarioJudicial() {
   return (
     <div className="w-full bg-transparent max-w-7xl rounded-lg p-6">
       {/* Encabezado con animación */}
-      <header className="mb-6 text-center">
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-xl lg:text-4xl font-extrabold mb-4 flex items-center justify-center"
-        >
-          <FiCalendar className="mr-2" aria-hidden="true" />
-          Calendario Judicial
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-lg text-gray-600 dark:text-gray-400"
-        >
-          Revisa las próximas audiencias, presentaciones y eventos judiciales.
-        </motion.p>
-      </header>
+      <AnimatedHeader
+        className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2"
+        variant="h1"
+      >
+        Calendario Judicial
+      </AnimatedHeader>
+      <AnimatedHeader
+        className="text-gray-600 dark:text-gray-400 mb-6"
+        variant="p"
+      >
+        Revisa las próximas audiencias, presentaciones y eventos judiciales.
+      </AnimatedHeader>
 
       {/* Filtros activos */}
       <div className="flex gap-2 flex-wrap mb-4 justify-center">

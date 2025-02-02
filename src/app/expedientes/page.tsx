@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { AnimatedHeader } from "@/components/AnimatedHeader";
 import { FiEdit, FiTrash2, FiFileText } from "react-icons/fi";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
@@ -21,13 +22,16 @@ export default function Expedientes() {
   const [searchQuery, setSearchQuery] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [expedienteToDelete, setExpedienteToDelete] = useState<{
-    id: string;
-    numero: string;
-    estado: string;
-    partes: string;
-    ultimaModificacion: string;
-  } | undefined>(undefined);
+  const [expedienteToDelete, setExpedienteToDelete] = useState<
+    | {
+        id: string;
+        numero: string;
+        estado: string;
+        partes: string;
+        ultimaModificacion: string;
+      }
+    | undefined
+  >(undefined);
   const [isExporting, setIsExporting] = useState(false);
   const [expedienteToEdit, setExpedienteToEdit] = useState<{
     id: string;
@@ -80,13 +84,15 @@ export default function Expedientes() {
       try {
         queryClient.setQueryData(
           ["expedientes"],
-          (oldData: {
-            id: string;
-            numero: string;
-            estado: string;
-            partes: string;
-            ultimaModificacion: string;
-          }[]) => oldData.filter((exp) => exp.id !== expedienteToDelete.id)
+          (
+            oldData: {
+              id: string;
+              numero: string;
+              estado: string;
+              partes: string;
+              ultimaModificacion: string;
+            }[]
+          ) => oldData.filter((exp) => exp.id !== expedienteToDelete.id)
         );
         toast.success("Expediente eliminado con éxito.");
       } catch (error) {
@@ -118,13 +124,15 @@ export default function Expedientes() {
     try {
       queryClient.setQueryData(
         ["expedientes"],
-        (oldData: {
-          id: string;
-          numero: string;
-          estado: string;
-          partes: string;
-          ultimaModificacion: string;
-        }[]) =>
+        (
+          oldData: {
+            id: string;
+            numero: string;
+            estado: string;
+            partes: string;
+            ultimaModificacion: string;
+          }[]
+        ) =>
           oldData.map((exp) =>
             exp.id === expediente.id
               ? {
@@ -149,7 +157,9 @@ export default function Expedientes() {
     setIsExporting(true);
     try {
       if (type === "pdf") await exportToPDF(filteredExpedientes);
-      toast.success(`Exportación a ${type.toUpperCase()} completada con éxito.`);
+      toast.success(
+        `Exportación a ${type.toUpperCase()} completada con éxito.`
+      );
     } catch (error) {
       toast.error(`Error al exportar: ${(error as Error).message}`);
     } finally {
@@ -206,12 +216,18 @@ export default function Expedientes() {
 
   return (
     <div className="p-6 w-full max-w-6xl mx-auto bg-transparent rounded-lg">
-      <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+      <AnimatedHeader
+        className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2"
+        variant="h1"
+      >
         Gestión de Expedientes {estadoFilter && `(${estadoFilter})`}
-      </h1>
-      <p className="text-gray-600 dark:text-gray-400 mb-6">
+      </AnimatedHeader>
+      <AnimatedHeader
+        className="text-gray-600 dark:text-gray-400 mb-6"
+        variant="p"
+      >
         Administra, filtra y exporta expedientes con facilidad.
-      </p>
+      </AnimatedHeader>
 
       {/* Filtros Activos */}
       <div className="flex gap-2 flex-wrap mb-4">
@@ -277,7 +293,9 @@ export default function Expedientes() {
           Página {currentPage} de {totalPages}
         </span>
         <button
-          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+          onClick={() =>
+            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+          }
           disabled={currentPage === totalPages}
           className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded disabled:opacity-50 w-full md:w-auto"
         >

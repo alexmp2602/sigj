@@ -19,7 +19,7 @@ export default function Home() {
 
   return (
     <main className="bg-transparent text-gray-800 dark:text-gray-300 min-h-screen flex flex-col justify-center items-center transition-colors duration-300">
-      <section className="text-center max-w-5xl mx-auto px-8 py-16">
+      <section className="text-center max-w-5xl mx-auto p-6 py-8">
         {/* Título principal con animación */}
         <motion.h2
           initial={{ opacity: 0, y: -20 }}
@@ -54,7 +54,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="text-lg mb-8 text-gray-600 dark:text-gray-400 leading-relaxed"
+          className="text-lg mb-6 text-gray-600 dark:text-gray-400 leading-relaxed"
         >
           Si bien el SIGJ está diseñado considerando{" "}
           <strong>posibles necesidades reales</strong> del tribunal, su
