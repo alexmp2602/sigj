@@ -188,12 +188,12 @@ export default function HistorialAcciones() {
           placeholder="Buscar acción..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 w-full"
+          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm w-full"
         />
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 w-full appearance-none bg-right bg-no-repeat"
+          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm w-full appearance-none bg-right bg-no-repeat"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
             backgroundSize: "1rem",
@@ -211,14 +211,14 @@ export default function HistorialAcciones() {
           type="date"
           value={filterDate}
           onChange={(e) => setFilterDate(e.target.value)}
-          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 w-full"
+          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm w-full"
         />
         <input
           type="text"
           placeholder="Filtrar por usuario..."
           value={filterUser}
           onChange={(e) => setFilterUser(e.target.value)}
-          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 w-full"
+          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm w-full"
         />
       </div>
 
