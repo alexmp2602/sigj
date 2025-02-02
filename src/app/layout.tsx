@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "https://sigj.vercel.app/og-image.jpg", // Cambia esto por la imagen de tu sitio
+        url: "https://sigj.vercel.app/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "SIGJ - Sistema Integral de Gestión Judicial",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "SIGJ - Sistema Integral de Gestión Judicial",
     description: "Sistema moderno para la gestión judicial desarrollado con Next.js.",
-    images: ["https://sigj.vercel.app/og-image.jpg"], // Asegúrate de tener esta imagen
+    images: ["https://sigj.vercel.app/og-image.jpg"],
   },
   metadataBase: new URL("https://sigj.vercel.app/"),
 };
