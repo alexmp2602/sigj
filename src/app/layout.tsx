@@ -4,8 +4,19 @@ import Header from "@/components/Header";
 
 export const metadata = {
   title: "SIGJ - Sistema Integral de Gestión Judicial",
-  description:
-    "Sistema moderno para la gestión judicial desarrollado con Next.js",
+  description: "Sistema moderno para la gestión judicial desarrollado con Next.js",
+  openGraph: {
+    title: "SIGJ - Sistema Integral de Gestión Judicial",
+    description: "Sistema moderno para la gestión judicial desarrollado con Next.js",
+    url: "https://sigj.vercel.app/",
+    siteName: "SIGJ",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SIGJ - Sistema Integral de Gestión Judicial",
+    description: "Sistema moderno para la gestión judicial desarrollado con Next.js",
+  },
 };
 
 export default function RootLayout({
