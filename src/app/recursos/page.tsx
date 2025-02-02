@@ -11,10 +11,9 @@ import ResourceTable from "@/components/ResourceTable";
 import { AnimatedHeader } from "@/components/AnimatedHeader";
 import { FiEdit, FiTrash2, FiCopy } from "react-icons/fi";
 
-const StockChart = dynamic(() => import("../../components/StockChart"), {
-  ssr: false,
+const StockChart = dynamic(() => import("@/components/StockChart"), {
+  loading: () => <p>Cargando gráfico...</p>,
 });
-
 interface Inventario {
   id: number;
   recurso: string;
