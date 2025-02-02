@@ -33,7 +33,7 @@ export default function RootLayout({
             <Header />
 
             {/* Contenido principal */}
-            <main className="mt-14  mx-auto flex flex-col flex-1 w-full max-w-7xl bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden custom-scrollbar">
+            <main className="mt-16 mx-auto flex flex-col flex-1 w-full max-w-7xl rounded-lg overflow-hidden custom-scrollbar items-center ">
               {children}
             </main>
 
@@ -45,7 +45,6 @@ export default function RootLayout({
               </p>
               <p>
                 Diseñado y desarrollado por{" "}
-                
                 <a
                   href="https://alexpereyra.dev"
                   target="_blank"

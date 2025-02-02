@@ -3,9 +3,7 @@ import { motion } from "framer-motion";
 import {
   FiFolder,
   FiBox,
-  FiUsers,
   FiClock,
-  FiShield,
   FiBell,
   FiCalendar,
   FiDownload,
@@ -17,12 +15,6 @@ export default function Home() {
     "Nueva audiencia programada para el 15 de marzo.",
     "Cambio en normativa de documentación judicial.",
     "Mantenimiento del sistema el domingo a las 22:00.",
-  ];
-
-  const history = [
-    "Modificación de expediente #3021",
-    "Carga de inventario de oficina N°5",
-    "Consulta de expediente #2918",
   ];
 
   return (
@@ -84,7 +76,7 @@ export default function Home() {
         </motion.a>
 
         {/* Panel de herramientas (Bento Grid) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
           <BentoCard
             title="Gestión de Expedientes"
             description="Consulta y administra expedientes judiciales."
@@ -92,34 +84,22 @@ export default function Home() {
             link="/expedientes"
           />
           <BentoCard
-            title="Gestión de Inventarios"
-            description="Control y registro de insumos administrativos."
+            title="Gestión de Recursos y Documentos"
+            description="Administra y consulta documentos oficiales y administrativos."
             icon={<FiBox />}
-            link="/inventarios"
-          />
-          <BentoCard
-            title="Seguridad y Transparencia"
-            description="Acceso seguro a la información judicial."
-            icon={<FiShield />}
-            link="#"
+            link="/recursos"
           />
           <BentoCard
             title="Historial de Acciones"
             description="Visualiza las últimas modificaciones realizadas."
             icon={<FiClock />}
-            link="#"
-          />
-          <BentoCard
-            title="Soporte y Contacto"
-            description="Consulta asistencia y preguntas frecuentes."
-            icon={<FiUsers />}
-            link="mailto:tuemail@correo.com"
+            link="/historial"
           />
           <BentoCard
             title="Calendario Judicial"
             description="Revisa fechas clave y vencimientos."
             icon={<FiCalendar />}
-            link="#"
+            link="/calendario"
           />
         </div>
 
@@ -136,30 +116,6 @@ export default function Home() {
             ))}
           </ul>
         </div>
-
-        {/* Sección de historial de acciones */}
-        <div className="mt-10">
-          <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center">
-            <FiClock className="mr-2" /> Historial de Acciones
-          </h3>
-          <ul className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-300 dark:border-gray-700 shadow-md">
-            {history.map((action, index) => (
-              <li key={index} className="text-gray-700 dark:text-gray-300 py-1">
-                ✅ {action}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Botón de contacto más visible */}
-        <motion.a
-          href="mailto:tuemail@correo.com"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="mt-8 inline-block bg-blue-700 dark:bg-blue-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-blue-800 dark:hover:bg-blue-400 transition"
-        >
-          📩 Contacto
-        </motion.a>
       </section>
     </main>
   );

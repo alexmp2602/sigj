@@ -3,6 +3,7 @@ import plugin from "tailwindcss/plugin";
 import tailwindScrollbarPlugin from "tailwind-scrollbar";
 
 const config = {
+  darkMode: "media", // O "class", si prefieres controlarlo manualmente
   content: [
     "./src/**/*.{js,ts,jsx,tsx}",
     "./pages/**/*.{js,ts,jsx,tsx}",

@@ -45,7 +45,7 @@ export default function Inventarios() {
 
   const { reset } = methods;
 
-  // Fetch inicial
+  // Fetch inicial de inventarios (recursos)
   useEffect(() => {
     const fetchInventarios = async () => {
       try {
@@ -167,12 +167,12 @@ export default function Inventarios() {
   }, []);
 
   return (
-    <div className="flex flex-col h-full p-4">
+    <div className="flex flex-col p-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Formulario y tabla */}
         <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">
-            Gestión de Inventarios
+            Gestión de Recursos y Documentos
           </h2>
           <FormProvider {...methods}>
             <ResourceForm onSubmit={handleCreate} isLoading={isLoading} />
@@ -186,7 +186,7 @@ export default function Inventarios() {
             handleDuplicate={handleDuplicate}
           />
         </div>
-        {/* Gráfico */}
+        {/* Gráfico de stock */}
         <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <Suspense fallback={<p>Cargando gráfico...</p>}>
             <StockChart data={inventarios} />

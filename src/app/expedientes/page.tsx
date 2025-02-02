@@ -12,7 +12,6 @@ import EditModal from "@/components/EditModal";
 const fetchExpedientes = async () => {
   const res = await fetch("/api/expedientes");
   if (!res.ok) throw new Error("Error al obtener expedientes");
-
   const json = await res.json();
   return json.data || [];
 };
@@ -22,16 +21,13 @@ export default function Expedientes() {
   const [searchQuery, setSearchQuery] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [expedienteToDelete, setExpedienteToDelete] = useState<
-    | {
-        id: string;
-        numero: string;
-        estado: string;
-        partes: string;
-        ultimaModificacion: string;
-      }
-    | undefined
-  >(undefined);
+  const [expedienteToDelete, setExpedienteToDelete] = useState<{
+    id: string;
+    numero: string;
+    estado: string;
+    partes: string;
+    ultimaModificacion: string;
+  } | undefined>(undefined);
   const [isExporting, setIsExporting] = useState(false);
   const [expedienteToEdit, setExpedienteToEdit] = useState<{
     id: string;
@@ -49,16 +45,21 @@ export default function Expedientes() {
     queryFn: fetchExpedientes,
   });
 
-  // Filtrar y Ordenar Expedientes
+  // Filtrar y ordenar expedientes según búsqueda y filtro de estado
   const filteredExpedientes = useMemo(() => {
     return expedientes.filter(
-      (exp: { numero: string; partes: string; estado: string }) => {
+      (exp: {
+        id: string;
+        numero: string;
+        estado: string;
+        partes: string;
+        ultimaModificacion: string;
+      }) => {
         const matchesSearch =
           exp.numero.toLowerCase().includes(searchQuery.toLowerCase()) ||
           exp.partes.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesEstado =
           estadoFilter === "" || exp.estado.toLowerCase() === estadoFilter;
-
         return matchesSearch && matchesEstado;
       }
     );
@@ -73,19 +74,23 @@ export default function Expedientes() {
 
   const totalPages = Math.ceil(filteredExpedientes.length / itemsPerPage);
 
+  // Manejo de acciones
   const handleDelete = async () => {
     if (expedienteToDelete) {
       try {
-        console.log("Eliminar expediente:", expedienteToDelete);
-
-        queryClient.setQueryData(["expedientes"], (oldData: { id: string }[]) =>
-          oldData.filter((exp) => exp.id !== expedienteToDelete.id)
+        queryClient.setQueryData(
+          ["expedientes"],
+          (oldData: {
+            id: string;
+            numero: string;
+            estado: string;
+            partes: string;
+            ultimaModificacion: string;
+          }[]) => oldData.filter((exp) => exp.id !== expedienteToDelete.id)
         );
-
         toast.success("Expediente eliminado con éxito.");
       } catch (error) {
         toast.error(`Error: ${(error as Error).message}`);
-        console.error("Error al eliminar:", error);
       } finally {
         setExpedienteToDelete(undefined);
       }
@@ -99,10 +104,10 @@ export default function Expedientes() {
     partes: string;
     ultimaModificacion: string;
   }) => {
-    console.log("Editar expediente:", expediente);
     setExpedienteToEdit(expediente);
   };
 
+  // Se modifica la firma de handleSaveEdit para que ultimaModificacion sea opcional
   const handleSaveEdit = async (expediente: {
     id: string;
     numero: string;
@@ -111,66 +116,69 @@ export default function Expedientes() {
     ultimaModificacion?: string;
   }) => {
     try {
-      console.log("Guardar cambios del expediente:", expediente);
-
-      // Actualizar el estado local después de guardar
       queryClient.setQueryData(
         ["expedientes"],
-        (
-          oldData: {
-            id: string;
-            numero: string;
-            estado: string;
-            partes: string;
-            ultimaModificacion: string;
-          }[]
-        ) => oldData.map((exp) => (exp.id === expediente.id ? expediente : exp))
+        (oldData: {
+          id: string;
+          numero: string;
+          estado: string;
+          partes: string;
+          ultimaModificacion: string;
+        }[]) =>
+          oldData.map((exp) =>
+            exp.id === expediente.id
+              ? {
+                  ...exp,
+                  ...expediente,
+                  // Si no se envía nueva última modificación, se conserva la anterior
+                  ultimaModificacion:
+                    expediente.ultimaModificacion ?? exp.ultimaModificacion,
+                }
+              : exp
+          )
       );
-
       toast.success("Expediente actualizado con éxito.");
     } catch (error) {
       toast.error(`Error: ${(error as Error).message}`);
-      console.error("Error al actualizar:", error);
     } finally {
       setExpedienteToEdit(null);
     }
   };
 
-  const handleExport = async (type: "pdf") => {
+  const handleExport = async (type: string) => {
     setIsExporting(true);
     try {
       if (type === "pdf") await exportToPDF(filteredExpedientes);
-      toast.success(
-        `Exportación a ${type.toUpperCase()} completada con éxito.`
-      );
+      toast.success(`Exportación a ${type.toUpperCase()} completada con éxito.`);
     } catch (error) {
       toast.error(`Error al exportar: ${(error as Error).message}`);
-      console.error("Error al exportar:", error);
     } finally {
       setIsExporting(false);
     }
   };
 
-  const handleGenerateDocument = async (expediente: { id: string; numero: string; estado: string; partes: string; ultimaModificacion: string }) => {
+  const handleGenerateDocument = async (expediente: {
+    id: string;
+    numero: string;
+    estado: string;
+    partes: string;
+    ultimaModificacion: string;
+  }) => {
     if (isDownloading) {
       toast.info("Ya hay una descarga en proceso. Espera un momento...");
       return;
     }
-
     setIsDownloading(true);
-
     try {
       const res = await fetch("/api/expedientes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...expediente, generateDocument: true }),
       });
-
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || "Error desconocido en el servidor.");
       }
-
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -179,11 +187,10 @@ export default function Expedientes() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-
       toast.success("Documento generado con éxito.");
     } catch (error) {
-      toast.error(`Error: ${(error as Error).message}`);
-      console.error("Error al generar el documento:", error);
+      const errorMessage = (error as Error).message || "Error desconocido";
+      toast.error(`Error: ${errorMessage}`);
     } finally {
       setIsDownloading(false);
     }
@@ -198,7 +205,7 @@ export default function Expedientes() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto bg-transparent shadow-md rounded-lg">
+    <div className="p-6 w-full max-w-6xl mx-auto bg-transparent rounded-lg">
       <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
         Gestión de Expedientes {estadoFilter && `(${estadoFilter})`}
       </h1>
@@ -239,16 +246,16 @@ export default function Expedientes() {
           placeholder="Buscar por número o partes..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm min-w-[200px]"
+          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm w-full min-w-[200px]"
         />
         <select
           value={estadoFilter}
           onChange={(e) => setEstadoFilter(e.target.value)}
-          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm min-w-[150px] appearance-none bg-right bg-no-repeat"
+          className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm w-full min-w-[150px] appearance-none bg-right bg-no-repeat"
           style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
             backgroundSize: "1rem",
-            backgroundPosition: "calc(100% - 0.75rem) center", // Ajusta la posición de la flecha
+            backgroundPosition: "calc(100% - 0.75rem) center",
           }}
         >
           <option value="">Estado</option>
@@ -258,33 +265,31 @@ export default function Expedientes() {
       </div>
 
       {/* Controles de Paginación */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-4">
         <button
           onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
           disabled={currentPage === 1}
-          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded disabled:opacity-50"
+          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded disabled:opacity-50 w-full md:w-auto mb-2 md:mb-0"
         >
           Anterior
         </button>
-        <span className="text-blue-600 dark:text-blue-400 font-semibold">
+        <span className="text-blue-600 dark:text-blue-400 font-semibold text-center w-full md:w-auto">
           Página {currentPage} de {totalPages}
         </span>
         <button
-          onClick={() =>
-            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-          }
+          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
           disabled={currentPage === totalPages}
-          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded disabled:opacity-50"
+          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded disabled:opacity-50 w-full md:w-auto"
         >
           Siguiente
         </button>
       </div>
 
       {/* Botones de Exportación */}
-      <div className="flex gap-4 mb-6">
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
         <button
           onClick={() => handleExport("pdf")}
-          className={`bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition flex items-center gap-2 ${
+          className={`bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition flex items-center gap-2 w-full md:w-auto ${
             isExporting ? "opacity-50 cursor-not-allowed" : ""
           }`}
           disabled={isExporting}
@@ -319,34 +324,111 @@ export default function Expedientes() {
         </button>
       </div>
 
-      {/* Tabla */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md">
-          <thead className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-            <tr>
-              <th className="p-3">Número</th>
-              <th className="p-3">Estado</th>
-              <th className="p-3">Partes</th>
-              <th className="p-3">Última Modificación</th>
-              <th className="p-3">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedExpedientes.length > 0 ? (
-              paginatedExpedientes.map(
-                (exp: {
-                  id: string;
-                  numero: string;
-                  estado: string;
-                  partes: string;
-                  ultimaModificacion: string;
-                }) => (
-                  <tr
-                    key={exp.id}
-                    className="border-b dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-transform duration-200 ease-in-out"
-                  >
-                    <td className="p-3">{exp.numero}</td>
-                    <td className="p-3">
+      {/* Layout de Datos: Vista en tabla para escritorio y tarjetas para móviles */}
+      <div className="mb-6">
+        {/* Vista en escritorio */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md">
+            <thead className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+              <tr>
+                <th className="p-3">Número</th>
+                <th className="p-3">Estado</th>
+                <th className="p-3">Partes</th>
+                <th className="p-3">Última Modificación</th>
+                <th className="p-3">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedExpedientes.length > 0 ? (
+                paginatedExpedientes.map(
+                  (exp: {
+                    id: string;
+                    numero: string;
+                    estado: string;
+                    partes: string;
+                    ultimaModificacion: string;
+                  }) => (
+                    <tr
+                      key={exp.id}
+                      className="border-b dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-transform duration-200 ease-in-out"
+                    >
+                      <td className="p-3">{exp.numero}</td>
+                      <td className="p-3">
+                        <span
+                          className={`px-2 py-1 rounded-md text-sm ${
+                            exp.estado === "Abierto"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {exp.estado}
+                        </span>
+                      </td>
+                      <td className="p-3">{exp.partes}</td>
+                      <td className="p-3">{exp.ultimaModificacion}</td>
+                      <td className="p-3 flex gap-2">
+                        <button
+                          onClick={() => handleEdit(exp)}
+                          className="text-blue-500 hover:text-blue-700 transition transform hover:scale-105"
+                        >
+                          <FiEdit />
+                        </button>
+                        <button
+                          onClick={() => setExpedienteToDelete(exp)}
+                          className="text-red-500 hover:text-red-700 transition transform hover:scale-105"
+                        >
+                          <FiTrash2 />
+                        </button>
+                        <button
+                          onClick={() => handleGenerateDocument(exp)}
+                          className="text-green-500 hover:text-green-700 transition transform hover:scale-105"
+                          disabled={isDownloading}
+                        >
+                          <FiFileText />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                )
+              ) : (
+                <tr>
+                  <td colSpan={5} className="text-center p-4 text-gray-500">
+                    No se encontraron expedientes para los filtros aplicados.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Vista en móvil */}
+        <div className="block md:hidden space-y-4">
+          {paginatedExpedientes.length > 0 ? (
+            paginatedExpedientes.map(
+              (exp: {
+                id: string;
+                numero: string;
+                estado: string;
+                partes: string;
+                ultimaModificacion: string;
+              }) => (
+                <div
+                  key={exp.id}
+                  className="bg-gray-50 dark:bg-gray-700 rounded-lg shadow p-4"
+                >
+                  <div className="mb-2">
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">
+                      Número:
+                    </span>
+                    <span className="ml-2 text-gray-900 dark:text-gray-100">
+                      {exp.numero}
+                    </span>
+                  </div>
+                  <div className="mb-2">
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">
+                      Estado:
+                    </span>
+                    <span className="ml-2 text-gray-900 dark:text-gray-100">
                       <span
                         className={`px-2 py-1 rounded-md text-sm ${
                           exp.estado === "Abierto"
@@ -356,42 +438,54 @@ export default function Expedientes() {
                       >
                         {exp.estado}
                       </span>
-                    </td>
-                    <td className="p-3">{exp.partes}</td>
-                    <td className="p-3">{exp.ultimaModificacion}</td>
-                    <td className="p-3 flex gap-2">
-                      <button
-                        onClick={() => handleEdit(exp)}
-                        className="text-blue-500 hover:text-blue-700 transition transform hover:scale-105"
-                      >
-                        <FiEdit />
-                      </button>
-                      <button
-                        onClick={() => setExpedienteToDelete(exp)}
-                        className="text-red-500 hover:text-red-700 transition transform hover:scale-105"
-                      >
-                        <FiTrash2 />
-                      </button>
-                      <button
-                        onClick={() => handleGenerateDocument(exp)}
-                        className="text-green-500 hover:text-green-700 transition transform hover:scale-105"
-                        disabled={isDownloading}
-                      >
-                        <FiFileText />
-                      </button>
-                    </td>
-                  </tr>
-                )
+                    </span>
+                  </div>
+                  <div className="mb-2">
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">
+                      Partes:
+                    </span>
+                    <span className="ml-2 text-gray-900 dark:text-gray-100">
+                      {exp.partes}
+                    </span>
+                  </div>
+                  <div className="mb-2">
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">
+                      Última Modificación:
+                    </span>
+                    <span className="ml-2 text-gray-900 dark:text-gray-100">
+                      {exp.ultimaModificacion}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(exp)}
+                      className="text-blue-500 hover:text-blue-700 transition transform hover:scale-105"
+                    >
+                      <FiEdit />
+                    </button>
+                    <button
+                      onClick={() => setExpedienteToDelete(exp)}
+                      className="text-red-500 hover:text-red-700 transition transform hover:scale-105"
+                    >
+                      <FiTrash2 />
+                    </button>
+                    <button
+                      onClick={() => handleGenerateDocument(exp)}
+                      className="text-green-500 hover:text-green-700 transition transform hover:scale-105"
+                      disabled={isDownloading}
+                    >
+                      <FiFileText />
+                    </button>
+                  </div>
+                </div>
               )
-            ) : (
-              <tr>
-                <td colSpan={5} className="text-center p-4 text-gray-500">
-                  No se encontraron expedientes para los filtros aplicados.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            )
+          ) : (
+            <div className="text-center p-4 text-gray-500">
+              No se encontraron expedientes para los filtros aplicados.
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Modal de Confirmación */}

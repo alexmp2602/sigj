@@ -53,7 +53,9 @@ export default function Header() {
             {[
               { href: "/", label: "Inicio" },
               { href: "/expedientes", label: "Expedientes" },
-              { href: "/inventarios", label: "Inventarios" },
+              { href: "/recursos", label: "Recursos" },
+              { href: "/historial", label: "Historial" },
+              { href: "/calendario", label: "Calendario" },
             ].map(({ href, label }) => (
               <li
                 key={href}
