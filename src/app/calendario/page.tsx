@@ -1,10 +1,25 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import React, { useState, useEffect, useMemo, useTransition } from "react";
 import { AnimatedHeader } from "@/components/AnimatedHeader";
-import { FiArrowUp, FiArrowDown } from "react-icons/fi";
+import { FiArrowUp, FiArrowDown, FiCalendar } from "react-icons/fi";
+
+/**
+ * Hook para debounced value: devuelve el valor pasado después de esperar el delay.
+ */
+function useDebounce<T>(value: T, delay = 300): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 export default function CalendarioJudicial() {
+  // Estados para búsqueda, filtrado, orden y paginación.
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDate, setFilterDate] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
@@ -14,7 +29,10 @@ export default function CalendarioJudicial() {
   // useTransition para actualizaciones de baja prioridad
   const [isPending, startTransition] = useTransition();
 
-  // Datos de ejemplo para eventos judiciales
+  // Aplicamos debounce a la búsqueda para evitar actualizaciones innecesarias.
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  // Datos simulados para eventos judiciales.
   const events = useMemo(
     () => [
       {
@@ -63,29 +81,27 @@ export default function CalendarioJudicial() {
     []
   );
 
-  // Filtrado de eventos (por búsqueda y fecha)
+  // Filtrado de eventos por búsqueda (con el valor debounced) y fecha.
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
       const matchesSearch =
-        event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        event.description.toLowerCase().includes(searchQuery.toLowerCase());
+        event.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        event.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
       const matchesDate = filterDate === "" || event.date === filterDate;
       return matchesSearch && matchesDate;
     });
-  }, [events, searchQuery, filterDate]);
+  }, [events, debouncedSearchQuery, filterDate]);
 
-  // Ordenar eventos por fecha
+  // Ordenar eventos por fecha (ascendente o descendente).
   const sortedEvents = useMemo(() => {
     return [...filteredEvents].sort((a, b) => {
-      if (sortOrder === "asc") {
-        return a.date.localeCompare(b.date);
-      } else {
-        return b.date.localeCompare(a.date);
-      }
+      return sortOrder === "asc"
+        ? a.date.localeCompare(b.date)
+        : b.date.localeCompare(a.date);
     });
   }, [filteredEvents, sortOrder]);
 
-  // Paginación de eventos
+  // Paginación de eventos.
   const paginatedEvents = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return sortedEvents.slice(start, start + itemsPerPage);
@@ -93,10 +109,12 @@ export default function CalendarioJudicial() {
 
   const totalPages = Math.ceil(sortedEvents.length / itemsPerPage);
 
+  // Alterna el orden de la lista.
   const handleSort = () => {
     setSortOrder(sortOrder === "asc" ? "desc" : "asc");
   };
 
+  // Limpia filtros de búsqueda y fecha.
   const clearFilters = () => {
     setSearchQuery("");
     setFilterDate("");
@@ -104,40 +122,41 @@ export default function CalendarioJudicial() {
 
   return (
     <div className="w-full bg-transparent max-w-7xl rounded-lg p-6">
-      {/* Encabezado con animación */}
+      {/* Encabezado principal */}
       <AnimatedHeader
-        className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2"
+        className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2"
         variant="h1"
       >
+        <FiCalendar size={32} className="text-blue-600 dark:text-blue-400" />
         Calendario Judicial
       </AnimatedHeader>
       <AnimatedHeader
         className="text-gray-600 dark:text-gray-400 mb-6"
         variant="p"
       >
-        Revisa las próximas audiencias, presentaciones y eventos judiciales.
+        Consulta los próximos eventos judiciales y mantente informado.
       </AnimatedHeader>
 
       {/* Filtros activos */}
       <div className="flex gap-2 flex-wrap mb-4 justify-center">
         {searchQuery && (
-          <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
+          <span
+            className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm"
+            aria-label={`Filtro de búsqueda activo: ${searchQuery}`}
+          >
             Búsqueda: {searchQuery}{" "}
-            <button
-              onClick={() => setSearchQuery("")}
-              className="ml-2 text-blue-500"
-            >
+            <button onClick={() => setSearchQuery("")} className="ml-2 text-blue-500" aria-label="Eliminar filtro de búsqueda">
               ×
             </button>
           </span>
         )}
         {filterDate && (
-          <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm">
+          <span
+            className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm"
+            aria-label={`Filtro de fecha activo: ${filterDate}`}
+          >
             Fecha: {filterDate}{" "}
-            <button
-              onClick={() => setFilterDate("")}
-              className="ml-2 text-purple-500"
-            >
+            <button onClick={() => setFilterDate("")} className="ml-2 text-purple-500" aria-label="Eliminar filtro de fecha">
               ×
             </button>
           </span>
@@ -150,20 +169,21 @@ export default function CalendarioJudicial() {
           type="text"
           placeholder="Buscar por título o descripción..."
           value={searchQuery}
-          onChange={(e) =>
-            startTransition(() => setSearchQuery(e.target.value))
-          }
+          onChange={(e) => startTransition(() => setSearchQuery(e.target.value))}
           className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm"
+          aria-label="Buscar eventos"
         />
         <input
           type="date"
           value={filterDate}
           onChange={(e) => startTransition(() => setFilterDate(e.target.value))}
           className="p-3 border rounded-md focus:outline-none dark:bg-gray-700 dark:text-gray-200 text-sm"
+          aria-label="Filtrar por fecha"
         />
         <button
           onClick={clearFilters}
           className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition"
+          aria-label="Limpiar filtros"
         >
           Limpiar filtros
         </button>
@@ -174,29 +194,22 @@ export default function CalendarioJudicial() {
         <button
           onClick={handleSort}
           className="flex items-center justify-center mx-auto text-blue-600 border border-blue-600 px-4 py-2 rounded-md hover:bg-blue-600 hover:text-white transition"
+          aria-label={`Ordenar eventos ${sortOrder === "asc" ? "descendente" : "ascendente"}`}
         >
           Ordenar por Fecha{" "}
-          {sortOrder === "asc" ? (
-            <FiArrowUp className="ml-2" />
-          ) : (
-            <FiArrowDown className="ml-2" />
-          )}
+          {sortOrder === "asc" ? <FiArrowUp className="ml-2" /> : <FiArrowDown className="ml-2" />}
         </button>
       </section>
 
       {/* Indicador de carga */}
       {isPending && (
-        <div
-          className="flex justify-center items-center mb-6"
-          role="status"
-          aria-live="polite"
-        >
+        <div className="flex justify-center items-center mb-6" role="status" aria-live="polite">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
           <span className="sr-only">Cargando...</span>
         </div>
       )}
 
-      {/* Layout de eventos: Tabla para escritorio y Tarjetas para móviles */}
+      {/* Layout de eventos */}
       <section className="mb-6">
         {/* Vista en escritorio */}
         <div className="hidden md:block">
@@ -241,6 +254,8 @@ export default function CalendarioJudicial() {
               <div
                 key={event.id}
                 className="bg-gray-50 dark:bg-gray-700 rounded-lg shadow p-4"
+                role="article"
+                aria-label={`Evento: ${event.title}`}
               >
                 <div className="mb-2">
                   <span className="font-semibold text-gray-700 dark:text-gray-300">
@@ -285,26 +300,23 @@ export default function CalendarioJudicial() {
       </section>
 
       {/* Controles de paginación */}
-      <nav
-        className="flex justify-between items-center"
-        aria-label="Controles de paginación"
-      >
+      <nav className="flex justify-between items-center" aria-label="Controles de paginación">
         <button
           onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
           disabled={currentPage === 1}
           className="px-4 py-2 bg-gray-200 text-gray-700 rounded disabled:opacity-50"
+          aria-label="Página anterior"
         >
           Anterior
         </button>
-        <span className="text-blue-600 font-semibold">
+        <span className="text-blue-600 font-semibold" aria-live="polite">
           Página {currentPage} de {totalPages}
         </span>
         <button
-          onClick={() =>
-            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-          }
+          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
           disabled={currentPage === totalPages}
           className="px-4 py-2 bg-gray-200 text-gray-700 rounded disabled:opacity-50"
+          aria-label="Página siguiente"
         >
           Siguiente
         </button>
